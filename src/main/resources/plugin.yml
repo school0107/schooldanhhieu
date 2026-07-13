@@ -1,0 +1,61 @@
+name: Schooltag
+version: 1.0.0
+main: com.schooltag.Schooltag
+api-version: '1.21'
+authors: [SchoolTagDev]
+description: Plugin danh hiệu cho máy chủ Minecraft
+commands:
+  tags:
+    description: Mở menu danh hiệu
+    usage: /<command>
+    aliases: [tag, danhhieu]
+  danhhieu:
+    description: Mở menu danh hiệu
+    usage: /<command>
+    aliases: [tags, tag]
+permissions:
+  schooltag.*:
+    description: Tất cả quyền của Schooltag
+    default: op
+    children:
+      schooltag.use: true
+      schooltag.admin: true
+      schooltag.default: true
+      schooltag.warrior: true
+      schooltag.tank: true
+      schooltag.vip: true
+      schooltag.admin: true
+      schooltag.youtuber: true
+      schooltag.streamer: true
+      schooltag.halloween: true
+      schooltag.christmas: true
+  schooltag.use:
+    description: Cho phép sử dụng danh hiệu
+    default: true
+  schooltag.admin:
+    description: Quyền admin
+    default: op
+  schooltag.default:
+    description: Danh hiệu mặc định
+    default: true
+  schooltag.warrior:
+    description: Danh hiệu Chiến Binh
+    default: false
+  schooltag.tank:
+    description: Danh hiệu Tăng Máu
+    default: false
+  schooltag.vip:
+    description: Danh hiệu VIP
+    default: false
+  schooltag.youtuber:
+    description: Danh hiệu YouTuber
+    default: false
+  schooltag.streamer:
+    description: Danh hiệu Streamer
+    default: false
+  schooltag.halloween:
+    description: Danh hiệu Halloween
+    default: false
+  schooltag.christmas:
+    description: Danh hiệu Giáng Sinh
+    default: false
