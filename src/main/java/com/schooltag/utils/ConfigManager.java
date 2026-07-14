@@ -21,6 +21,10 @@ public class ConfigManager {
         return config.getInt("settings.auto-save", 5);
     }
     
+    public int getCooldown() {
+        return config.getInt("settings.cooldown", 3);
+    }
+    
     public Set<String> getAllTags() {
         ConfigurationSection tags = config.getConfigurationSection("tags");
         if (tags == null) return new HashSet<>();

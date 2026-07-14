@@ -259,3 +259,5 @@ messages:
   tag-selected: "&aĐã chọn danh hiệu &e{tag}"
   tag-removed: "&eĐã gỡ bỏ danh hiệu"
   reloaded: "&aReload thành công!"
+  permissions-granted: "&aĐã cấp quyền: &e{permissions}"
+  permissions-removed: "&eĐã gỡ bỏ quyền"
