@@ -22,24 +22,19 @@ public class Schooltag extends JavaPlugin {
         try {
             instance = this;
             
-            // Load config
             saveDefaultConfig();
             reloadConfig();
             
-            // Initialize managers
             configManager = new ConfigManager();
             tagManager = new TagManager();
             placeholderManager = new PlaceholderManager();
             
-            // Register commands
             getCommand("tags").setExecutor(new TagCommand());
             getCommand("danhhieu").setExecutor(new DanhHieuCommand());
             
-            // Register listeners
             getServer().getPluginManager().registerEvents(new PlayerListener(), this);
             getServer().getPluginManager().registerEvents(new MenuListener(), this);
             
-            // Load data
             tagManager.loadPlayerTags();
             
             // Register PlaceholderAPI
