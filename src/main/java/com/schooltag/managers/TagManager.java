@@ -167,7 +167,6 @@ public class TagManager {
             Inventory inv = Bukkit.createInventory(null, 54, 
                 ColorUtils.colorize(Schooltag.getInstance().getConfigManager().getGuiTitle()));
             
-            // Fill background
             ItemStack filler = new ItemStack(Material.valueOf(
                 Schooltag.getInstance().getConfigManager().getFillerMaterial()));
             ItemMeta fillerMeta = filler.getItemMeta();
@@ -179,7 +178,6 @@ public class TagManager {
                 inv.setItem(i, filler);
             }
 
-            // Get all tags and sort by slot
             List<String> allTags = new ArrayList<>(Schooltag.getInstance().getConfigManager().getAllTags());
             Map<Integer, String> slotMap = new HashMap<>();
             
@@ -190,7 +188,6 @@ public class TagManager {
                 }
             }
             
-            // Add tags to their specific slots
             for (Map.Entry<Integer, String> entry : slotMap.entrySet()) {
                 int slot = entry.getKey();
                 String tagId = entry.getValue();
@@ -202,7 +199,6 @@ public class TagManager {
                 inv.setItem(slot, item);
             }
 
-            // Add control buttons
             ItemStack prev = new ItemStack(Material.valueOf(
                 Schooltag.getInstance().getConfigManager().getPrevMaterial()));
             ItemMeta prevMeta = prev.getItemMeta();
@@ -341,7 +337,6 @@ public class TagManager {
 
     public void handleMenuClick(Player player, int slot) {
         try {
-            // Check if clicked slot has a tag
             String clickedTag = null;
             for (String tagId : Schooltag.getInstance().getConfigManager().getAllTags()) {
                 int tagSlot = Schooltag.getInstance().getConfigManager().getTagSlot(tagId);

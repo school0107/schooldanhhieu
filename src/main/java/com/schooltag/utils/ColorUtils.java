@@ -12,14 +12,12 @@ public class ColorUtils {
     public static String colorize(String message) {
         if (message == null) return "";
         
-        // Handle RGB colors
         Matcher matcher = RGB_PATTERN.matcher(message);
         while (matcher.find()) {
             String color = matcher.group(1);
             message = message.replace("&#" + color, ChatColor.of("#" + color).toString());
         }
         
-        // Handle legacy colors
         return ChatColor.translateAlternateColorCodes('&', message);
     }
     
