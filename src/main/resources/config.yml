@@ -1,18 +1,27 @@
-# Schooltag Configuration
+# ============================================
+#  SCHOOLTAG - Plugin Danh Hiệu
+#  Version: 1.0.0
+#  Minecraft: 1.21+
+# ============================================
 
-# Cài đặt chung
+# ============================================
+# CÀI ĐẶT CHUNG
+# ============================================
 settings:
   prefix: "&6&lSchoolTag &8» &r"
   auto-save: 5
+  cooldown: 3
 
-# Danh sách danh hiệu
+# ============================================
+# DANH SÁCH DANH HIỆU
+# ============================================
 tags:
   default:
-    name: "&7Người Chơi"
+    name: "&#808080Người Chơi"
     material: "NAME_TAG"
-    slot: 0  # Vị trí trong menu (0-53)
+    slot: 0
     lore:
-      - "&7Danh hiệu mặc định"
+      - "&#808080Danh hiệu mặc định"
     effects:
       damage-multiplier: 1.0
       health-multiplier: 1.0
@@ -21,87 +30,79 @@ tags:
     priority: 0
 
   warrior:
-    name: "&c&l⚔️ Chiến Binh"
+    name: "&#FF4444⚔️ Sắc Bén"
     material: "DIAMOND_SWORD"
     slot: 1
     lore:
-      - "&7Tăng &c20% &7sát thương"
-      - "&7Danh hiệu của chiến binh"
+      - "&#FF4444⚔️ &7Tăng &c20% &7sát thương"
     effects:
       damage-multiplier: 1.2
       health-multiplier: 1.0
     permission: "schooltag.warrior"
-    grant-permissions:
-      - "warrior.damage.boost"
+    grant-permissions: []
     priority: 1
 
   tank:
-    name: "&a&l🛡️ Tăng Máu"
+    name: "&#44FF44🛡️ Cứng Cáp"
     material: "SHIELD"
     slot: 2
     lore:
-      - "&7Tăng &a10% &7máu"
-      - "&7Danh hiệu của người bảo vệ"
+      - "&#44FF44❤️ &7Tăng &a10% &7máu"
     effects:
       damage-multiplier: 1.0
       health-multiplier: 1.1
     permission: "schooltag.tank"
-    grant-permissions:
-      - "tank.health.boost"
+    grant-permissions: []
     priority: 2
 
-  vip:
-    name: "&6&l✨ VIP &e&l✨"
-    material: "GOLDEN_APPLE"
-    slot: 10
+  miner:
+    name: "&#FFAA00⛏️ Thợ Mỏ"
+    material: "DIAMOND_PICKAXE"
+    slot: 3
     lore:
-      - "&7Danh hiệu &6VIP"
-      - "&7Nhận được nhiều ưu đãi"
+      - "&#FFAA00⛏️ &7Tăng &6x1.4 &7khoáng sản"
     effects:
       damage-multiplier: 1.0
       health-multiplier: 1.0
-    permission: "schooltag.vip"
+    permission: "schooltag.miner"
     grant-permissions:
-      - "vip.chat.color"
-      - "vip.fly"
-      - "vip.join.effect"
+      - "mine.x1.4"
     priority: 3
 
-  youtuber:
-    name: "&f&l🎬 &c&lYouTuber &f&l🎬"
-    material: "PLAYER_HEAD"
-    slot: 11
+  xp:
+    name: "&#55FFFF✨ Thần Tốc"
+    material: "EXPERIENCE_BOTTLE"
+    slot: 4
     lore:
-      - "&7Danh hiệu của YouTuber"
+      - "&#55FFFF✨ &7Tăng &ex2 &7Kinh Nghiệm"
     effects:
       damage-multiplier: 1.0
       health-multiplier: 1.0
-    permission: "schooltag.youtuber"
+    permission: "schooltag.xp"
     grant-permissions:
-      - "youtuber.special"
-      - "youtuber.fly"
-    priority: 5
+      - "schoollevel.xp.2"
+    priority: 4
 
-  streamer:
-    name: "&5&l📺 &d&lStreamer &5&l📺"
-    material: "ENDER_EYE"
-    slot: 12
+  money:
+    name: "&#00FF88💰 Tài Chính"
+    material: "GOLD_INGOT"
+    slot: 5
     lore:
-      - "&7Danh hiệu của Streamer"
+      - "&#00FF88💰 &7Tăng &ax2 &7Money"
     effects:
       damage-multiplier: 1.0
       health-multiplier: 1.0
-    permission: "schooltag.streamer"
+    permission: "schooltag.money"
     grant-permissions:
-      - "streamer.special"
+      - "schoollevel.money.2"
     priority: 4
 
   admin:
-    name: "&c&l🔱 &4&lADMIN &c&l🔱"
+    name: "&#FF0000🔱 &#FF4444ADMIN &#FF0000🔱"
     material: "NETHER_STAR"
     slot: 13
     lore:
-      - "&c&lQuyền năng tối thượng"
+      - "&#FF4444Quyền năng tối thượng"
     effects:
       damage-multiplier: 1.0
       health-multiplier: 1.0
@@ -111,11 +112,11 @@ tags:
     priority: 10
 
   halloween:
-    name: "&6&l🎃 &c&lHalloween &6&l🎃"
+    name: "&#FF8800🎃 &#FF4400Halloween &#FF8800🎃"
     material: "CARVED_PUMPKIN"
     slot: 20
     lore:
-      - "&6&lĐặc biệt cho mùa Halloween"
+      - "&#FF8800🎃 &7Tăng &c15% &7sát thương"
     effects:
       damage-multiplier: 1.15
       health-multiplier: 1.0
@@ -125,11 +126,11 @@ tags:
     priority: 3
 
   christmas:
-    name: "&c&l🎄 &a&lGiáng Sinh &c&l🎄"
+    name: "&#FF0000🎄 &#00FF00Giáng Sinh &#FF0000🎄"
     material: "CHEST_MINECART"
     slot: 21
     lore:
-      - "&a&lKhông khí Giáng Sinh"
+      - "&#00FF00🎄 &7Tăng &a15% &7máu"
     effects:
       damage-multiplier: 1.0
       health-multiplier: 1.15
@@ -138,7 +139,80 @@ tags:
       - "christmas.gift"
     priority: 3
 
-# GUI Settings
+  newbie:
+    name: "&#00FF88🌱 Người Mới"
+    material: "OAK_SAPLING"
+    slot: 22
+    lore:
+      - "&#00FF88🌱 &7Chào mừng đến với máy chủ!"
+    effects:
+      damage-multiplier: 1.0
+      health-multiplier: 1.0
+    permission: "schooltag.newbie"
+    grant-permissions:
+      - "newbie.help"
+    priority: 0
+
+  legend:
+    name: "&#FFD700🌟 &#FFAA00Huyền Thoại &#FFD700🌟"
+    material: "DRAGON_HEAD"
+    slot: 23
+    lore:
+      - "&#FFD700🌟 &7Tăng &c20% &7sát thương"
+      - "&#FFD700🌟 &7Tăng &a10% &7máu"
+    effects:
+      damage-multiplier: 1.2
+      health-multiplier: 1.1
+    permission: "schooltag.legend"
+    grant-permissions:
+      - "legend.special"
+    priority: 8
+
+  event:
+    name: "&#FF44FF🎉 Sự Kiện"
+    material: "FIREWORK_ROCKET"
+    slot: 30
+    lore:
+      - "&#FF44FF🎉 &7Danh hiệu sự kiện"
+    effects:
+      damage-multiplier: 1.0
+      health-multiplier: 1.0
+    permission: "schooltag.event"
+    grant-permissions:
+      - "event.participant"
+    priority: 2
+
+  builder:
+    name: "&#FFBB00🏗️ Builder"
+    material: "BRICK"
+    slot: 31
+    lore:
+      - "&#FFBB00🏗️ &7Danh hiệu xây dựng"
+    effects:
+      damage-multiplier: 1.0
+      health-multiplier: 1.0
+    permission: "schooltag.builder"
+    grant-permissions:
+      - "builder.creative"
+    priority: 4
+
+  donator:
+    name: "&#00FFAA💎 Donator"
+    material: "EMERALD"
+    slot: 32
+    lore:
+      - "&#00FFAA💎 &7Cảm ơn bạn đã ủng hộ!"
+    effects:
+      damage-multiplier: 1.0
+      health-multiplier: 1.0
+    permission: "schooltag.donator"
+    grant-permissions:
+      - "donator.special"
+    priority: 3
+
+# ============================================
+# CÀI ĐẶT GIAO DIỆN MENU
+# ============================================
 gui:
   title: "&6&l🎯 Danh Hiệu"
   size: 54
@@ -161,28 +235,27 @@ gui:
   selected:
     lore:
       - "&a&l✔ Đang sử dụng"
-      - "&7Quyền được cấp: &e{grant-permissions}"
+      - "&7Quyền: &e{grant-permissions}"
   unselected:
     lore:
       - "&7Click để chọn"
-      - "&7Quyền được cấp: &e{grant-permissions}"
+      - "&7Quyền: &e{grant-permissions}"
   lock:
     material: "BARRIER"
     name: "&c&l🔒 Khóa"
     lore:
-      - "&7Bạn cần có permission: &e{permission}"
-      - "&7Để mở khóa danh hiệu này"
+      - "&7Cần permission: &e{permission}"
 
-# Messages
+# ============================================
+# TIN NHẮN HỆ THỐNG
+# ============================================
 messages:
   no-permission: "&cBạn không có quyền sử dụng lệnh này!"
   player-only: "&cLệnh này chỉ dành cho người chơi!"
-  tag-selected: "&aBạn đã chọn danh hiệu &e{tag}"
-  tag-removed: "&eBạn đã gỡ bỏ danh hiệu"
-  reloaded: "&aPlugin đã được reload thành công!"
-  tag-not-exist: "&cDanh hiệu không tồn tại!"
   tag-locked: "&cBạn chưa có permission để sở hữu danh hiệu này!"
+  tag-not-exist: "&cDanh hiệu không tồn tại!"
   invalid-command: "&cLệnh không hợp lệ! Sử dụng: /tags hoặc /danhhieu"
-  no-tag-permission: "&cBạn không có permission để sử dụng danh hiệu này!"
-  permissions-granted: "&aĐã cấp quyền: &e{permissions}"
-  permissions-removed: "&eĐã gỡ bỏ quyền của danh hiệu cũ"
+  cooldown: "&cVui lòng đợi &e{seconds}&c giây!"
+  tag-selected: "&aĐã chọn danh hiệu &e{tag}"
+  tag-removed: "&eĐã gỡ bỏ danh hiệu"
+  reloaded: "&aReload thành công!"

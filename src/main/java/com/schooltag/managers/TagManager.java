@@ -16,14 +16,19 @@ import org.bukkit.permissions.PermissionAttachment;
 
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class TagManager {
     private final Map<UUID, String> playerTags = new HashMap<>();
     private final Map<UUID, PermissionAttachment> attachments = new HashMap<>();
+    private final Map<UUID, Long> cooldowns = new ConcurrentHashMap<>(); // Chống spam
     private File playerDataFile;
     private FileConfiguration playerData;
     private int currentPage = 0;
     private final int ITEMS_PER_PAGE = 45;
+    
+    // Thời gian chờ mặc định (giây)
+    private final int DEFAULT_COOLDOWN = 3;
 
     public TagManager() {
         try {
@@ -222,6 +227,49 @@ public class TagManager {
         resetHealth(player);
     }
 
+    /**
+     * Kiểm tra cooldown của người chơi
+     * @param player Người chơi cần kiểm tra
+     * @param cooldownSeconds Thời gian chờ (giây)
+     * @return true nếu đang trong thời gian chờ, false nếu có thể đổi tag
+     */
+    private boolean isOnCooldown(Player player, int cooldownSeconds) {
+        UUID uuid = player.getUniqueId();
+        long currentTime = System.currentTimeMillis();
+        
+        if (cooldowns.containsKey(uuid)) {
+            long lastChange = cooldowns.get(uuid);
+            long timePassed = (currentTime - lastChange) / 1000; // Chuyển sang giây
+            
+            if (timePassed < cooldownSeconds) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Cập nhật cooldown cho người chơi
+     */
+    private void updateCooldown(Player player) {
+        cooldowns.put(player.getUniqueId(), System.currentTimeMillis());
+    }
+
+    /**
+     * Lấy thời gian cooldown còn lại (giây)
+     */
+    public long getRemainingCooldown(Player player) {
+        UUID uuid = player.getUniqueId();
+        if (!cooldowns.containsKey(uuid)) return 0;
+        
+        long lastChange = cooldowns.get(uuid);
+        long currentTime = System.currentTimeMillis();
+        long timePassed = (currentTime - lastChange) / 1000;
+        
+        return Math.max(0, DEFAULT_COOLDOWN - timePassed);
+    }
+
     public void openTagMenu(Player player) {
         openTagMenu(player, 0);
     }
@@ -292,6 +340,19 @@ public class TagManager {
             close.setItemMeta(closeMeta);
             inv.setItem(49, close);
 
+            // Hiển thị thông tin cooldown
+            if (isOnCooldown(player, DEFAULT_COOLDOWN)) {
+                long remaining = getRemainingCooldown(player);
+                ItemStack cooldownItem = new ItemStack(Material.CLOCK);
+                ItemMeta cooldownMeta = cooldownItem.getItemMeta();
+                cooldownMeta.setDisplayName(ColorUtils.colorize("&c&l⏳ Đang chờ..."));
+                cooldownMeta.setLore(ColorUtils.colorizeList(Arrays.asList(
+                    "&7Vui lòng đợi &e" + remaining + "&7 giây để đổi danh hiệu tiếp theo"
+                )));
+                cooldownItem.setItemMeta(cooldownMeta);
+                inv.setItem(4, cooldownItem);
+            }
+
             player.openInventory(inv);
         } catch (Exception e) {
             e.printStackTrace();
@@ -350,6 +411,12 @@ public class TagManager {
                 }
             }
             
+            // Thêm thông báo cooldown nếu đang chờ
+            if (isOnCooldown(player, DEFAULT_COOLDOWN) && hasPerm && !selected) {
+                lore.add("");
+                lore.add(ColorUtils.colorize("&c&l⏳ Đang chờ &e" + getRemainingCooldown(player) + "&c&l giây..."));
+            }
+            
             meta.setLore(ColorUtils.colorizeList(lore));
             item.setItemMeta(meta);
             return item;
@@ -361,10 +428,28 @@ public class TagManager {
 
     public void selectTag(Player player, String tagId) {
         try {
+            // Kiểm tra cooldown
+            if (isOnCooldown(player, DEFAULT_COOLDOWN)) {
+                long remaining = getRemainingCooldown(player);
+                String msg = "&cBạn phải đợi &e" + remaining + "&c giây để đổi danh hiệu tiếp theo!";
+                player.sendMessage(ColorUtils.colorize(msg));
+                
+                // Cập nhật menu để hiển thị cooldown
+                openTagMenu(player, currentPage);
+                return;
+            }
+            
             // Check if player has permission for this tag
             if (!hasTagPermission(player, tagId)) {
                 player.sendMessage(ColorUtils.colorize(
                     Schooltag.getInstance().getConfigManager().getMessage("tag-locked")));
+                return;
+            }
+            
+            // Kiểm tra nếu đang dùng tag này rồi
+            String currentTag = getPlayerTag(player);
+            if (currentTag != null && currentTag.equals(tagId)) {
+                player.sendMessage(ColorUtils.colorize("&eBạn đang sử dụng danh hiệu này!"));
                 return;
             }
             
@@ -375,8 +460,7 @@ public class TagManager {
             }
             
             // Remove old tag permissions và effects
-            String oldTag = getPlayerTag(player);
-            if (oldTag != null) {
+            if (currentTag != null) {
                 removeTagPermissions(player);
                 resetPlayerStats(player);
             }
@@ -387,6 +471,9 @@ public class TagManager {
             // Apply new tag permissions và effects
             applyTagPermissions(player);
             applyTagEffects(player);
+            
+            // Update cooldown
+            updateCooldown(player);
             
             // Save
             savePlayerTag(player);
@@ -412,6 +499,9 @@ public class TagManager {
                 player.sendMessage(ColorUtils.colorize("&7Hiệu ứng: " + String.join(", ", effects)));
             }
             
+            // Thông báo cooldown
+            player.sendMessage(ColorUtils.colorize("&7Bạn có thể đổi danh hiệu sau &e" + DEFAULT_COOLDOWN + "&7 giây"));
+            
         } catch (Exception e) {
             e.printStackTrace();
             player.sendMessage(ColorUtils.colorize("&cCó lỗi xảy ra khi chọn danh hiệu!"));
@@ -420,6 +510,14 @@ public class TagManager {
 
     public void removeTag(Player player) {
         try {
+            // Kiểm tra cooldown
+            if (isOnCooldown(player, DEFAULT_COOLDOWN)) {
+                long remaining = getRemainingCooldown(player);
+                String msg = "&cBạn phải đợi &e" + remaining + "&c giây để gỡ danh hiệu!";
+                player.sendMessage(ColorUtils.colorize(msg));
+                return;
+            }
+            
             UUID uuid = player.getUniqueId();
             
             // Remove permissions và effects
@@ -429,6 +527,9 @@ public class TagManager {
             // Remove tag
             playerTags.remove(uuid);
             savePlayerTag(player);
+            
+            // Update cooldown
+            updateCooldown(player);
             
             // Auto select default if has permission
             if (hasTagPermission(player, "default")) {
@@ -470,7 +571,11 @@ public class TagManager {
             
             if (clickedTag != null) {
                 selectTag(player, clickedTag);
-                openTagMenu(player, currentPage);
+                // Không mở lại menu ngay lập tức để tránh spam
+                // Mở lại sau 1 tick để cooldown được cập nhật
+                Bukkit.getScheduler().runTaskLater(Schooltag.getInstance(), () -> {
+                    openTagMenu(player, currentPage);
+                }, 1L);
             } else if (slot == 48) {
                 // Previous page - not used in slot mode
             } else if (slot == 50) {
@@ -489,5 +594,15 @@ public class TagManager {
             resetHealth(player);
             removeTagPermissions(player);
         }
+    }
+
+    // Reset cooldown cho player (dùng khi reload)
+    public void resetCooldown(Player player) {
+        cooldowns.remove(player.getUniqueId());
+    }
+
+    // Reset tất cả cooldown
+    public void resetAllCooldowns() {
+        cooldowns.clear();
     }
 }
