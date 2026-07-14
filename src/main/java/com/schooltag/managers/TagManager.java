@@ -2,7 +2,6 @@ package com.schooltag.managers;
 
 import com.schooltag.Schooltag;
 import com.schooltag.utils.ColorUtils;
-import com.schooltag.utils.ConfigManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -81,7 +80,6 @@ public class TagManager {
             e.printStackTrace();
         }
         
-        // Apply default tag if no tag selected or current tag not valid
         String currentTag = playerTags.get(uuid);
         if (currentTag == null || !Schooltag.getInstance().getConfigManager().tagExists(currentTag)) {
             if (hasTagPermission(player, "default")) {
@@ -91,7 +89,6 @@ public class TagManager {
             }
         }
         
-        // Apply tag permissions
         applyTagPermissions(player);
     }
 
@@ -122,13 +119,10 @@ public class TagManager {
     }
 
     public void applyTagPermissions(Player player) {
-        // Remove old attachments
         if (attachments.containsKey(player.getUniqueId())) {
             try {
                 attachments.get(player.getUniqueId()).remove();
-            } catch (Exception e) {
-                // Ignore
-            }
+            } catch (Exception e) {}
             attachments.remove(player.getUniqueId());
         }
         
@@ -139,11 +133,9 @@ public class TagManager {
         if (grantPermissions.isEmpty()) return;
         
         try {
-            // Create new attachment
             PermissionAttachment attachment = player.addAttachment(Schooltag.getInstance());
             attachments.put(player.getUniqueId(), attachment);
             
-            // Grant permissions
             if (grantPermissions.contains("*")) {
                 attachment.setPermission("*", true);
             } else {
@@ -160,9 +152,7 @@ public class TagManager {
         if (attachments.containsKey(player.getUniqueId())) {
             try {
                 attachments.get(player.getUniqueId()).remove();
-            } catch (Exception e) {
-                // Ignore
-            }
+            } catch (Exception e) {}
             attachments.remove(player.getUniqueId());
         }
     }
@@ -177,7 +167,6 @@ public class TagManager {
             Inventory inv = Bukkit.createInventory(null, 54, 
                 ColorUtils.colorize(Schooltag.getInstance().getConfigManager().getGuiTitle()));
             
-            // Fill background
             ItemStack filler = new ItemStack(Material.valueOf(
                 Schooltag.getInstance().getConfigManager().getFillerMaterial()));
             ItemMeta fillerMeta = filler.getItemMeta();
@@ -189,12 +178,10 @@ public class TagManager {
                 inv.setItem(i, filler);
             }
 
-            // Get all tags
             List<String> allTags = new ArrayList<>(Schooltag.getInstance().getConfigManager().getAllTags());
             int start = page * ITEMS_PER_PAGE;
             int end = Math.min(start + ITEMS_PER_PAGE, allTags.size());
 
-            // Add tag items
             for (int i = start; i < end; i++) {
                 String tagId = allTags.get(i);
                 boolean hasPerm = hasTagPermission(player, tagId);
@@ -204,7 +191,6 @@ public class TagManager {
                 inv.setItem(i - start, item);
             }
 
-            // Add control buttons
             if (page > 0) {
                 ItemStack prev = new ItemStack(Material.valueOf(
                     Schooltag.getInstance().getConfigManager().getPrevMaterial()));
@@ -225,7 +211,6 @@ public class TagManager {
                 inv.setItem(50, next);
             }
 
-            // Close button
             ItemStack close = new ItemStack(Material.valueOf(
                 Schooltag.getInstance().getConfigManager().getCloseMaterial()));
             ItemMeta closeMeta = close.getItemMeta();
@@ -253,7 +238,6 @@ public class TagManager {
             List<String> lore = new ArrayList<>();
             lore.addAll(Schooltag.getInstance().getConfigManager().getTagLore(tagId));
             
-            // Add grant permissions to lore
             List<String> grantPerms = Schooltag.getInstance().getConfigManager().getTagGrantPermissions(tagId);
             String grantPermsStr = grantPerms.isEmpty() ? "Không có" : String.join(", ", grantPerms);
             
@@ -292,7 +276,6 @@ public class TagManager {
 
     public void selectTag(Player player, String tagId) {
         try {
-            // Check if player has permission for this tag
             if (!hasTagPermission(player, tagId)) {
                 player.sendMessage(ColorUtils.colorize(
                     Schooltag.getInstance().getConfigManager().getMessage("tag-locked")));
@@ -305,19 +288,11 @@ public class TagManager {
                 return;
             }
             
-            // Remove old tag permissions
             removeTagPermissions(player);
-            
-            // Set new tag
             playerTags.put(player.getUniqueId(), tagId);
-            
-            // Apply new tag permissions
             applyTagPermissions(player);
-            
-            // Save
             savePlayerTag(player);
             
-            // Send message
             String msg = Schooltag.getInstance().getConfigManager().getMessage("tag-selected")
                 .replace("{tag}", Schooltag.getInstance().getConfigManager().getTagName(tagId));
             player.sendMessage(ColorUtils.colorize(msg));
@@ -330,22 +305,16 @@ public class TagManager {
     public void removeTag(Player player) {
         try {
             UUID uuid = player.getUniqueId();
-            
-            // Remove permissions
             removeTagPermissions(player);
-            
-            // Remove tag
             playerTags.remove(uuid);
             savePlayerTag(player);
             
-            // Auto select default if has permission
             if (hasTagPermission(player, "default")) {
                 playerTags.put(uuid, "default");
                 applyTagPermissions(player);
                 savePlayerTag(player);
             }
             
-            // Send message
             player.sendMessage(ColorUtils.colorize(
                 Schooltag.getInstance().getConfigManager().getMessage("tag-removed")));
         } catch (Exception e) {

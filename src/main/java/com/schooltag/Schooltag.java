@@ -93,4 +93,4 @@ public class Schooltag extends JavaPlugin {
             getLogger().severe("Lỗi khi reload Schooltag!");
         }
     }
-}ga
+}
