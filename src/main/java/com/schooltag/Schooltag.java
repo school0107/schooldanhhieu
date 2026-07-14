@@ -82,8 +82,10 @@ public class Schooltag extends JavaPlugin {
     public void onDisable() {
         try {
             // Reset health for all players before disabling
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                playerListener.resetHealth(player);
+            if (playerListener != null) {
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    playerListener.resetHealth(player);
+                }
             }
             
             if (tagManager != null) {
@@ -125,7 +127,9 @@ public class Schooltag extends JavaPlugin {
             for (Player player : Bukkit.getOnlinePlayers()) {
                 tagManager.loadPlayerTag(player);
                 tagManager.applyTagEffects(player);
-                playerListener.applyHealthBoost(player);
+                if (playerListener != null) {
+                    playerListener.applyHealthBoost(player);
+                }
             }
             
             getLogger().info("Schooltag đã được reload!");

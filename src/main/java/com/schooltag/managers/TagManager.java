@@ -182,7 +182,7 @@ public class TagManager {
 
     private void applyHealthBoost(Player player, double multiplier) {
         try {
-            AttributeInstance attribute = player.getAttribute(Attribute.MAX_HEALTH);
+            AttributeInstance attribute = player.getAttribute(Attribute.GENERIC_MAX_HEALTH);
             if (attribute != null) {
                 double baseHealth = 20.0;
                 double newMaxHealth = baseHealth * multiplier;
@@ -206,7 +206,7 @@ public class TagManager {
 
     public void resetHealth(Player player) {
         try {
-            AttributeInstance attribute = player.getAttribute(Attribute.MAX_HEALTH);
+            AttributeInstance attribute = player.getAttribute(Attribute.GENERIC_MAX_HEALTH);
             if (attribute != null) {
                 attribute.setBaseValue(20.0);
                 if (player.getHealth() > 20.0) {
