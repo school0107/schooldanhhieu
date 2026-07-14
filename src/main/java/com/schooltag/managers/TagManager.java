@@ -4,6 +4,8 @@ import com.schooltag.Schooltag;
 import com.schooltag.utils.ColorUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -89,7 +91,9 @@ public class TagManager {
             }
         }
         
+        // Apply tag permissions và effects
         applyTagPermissions(player);
+        applyTagEffects(player);
     }
 
     public boolean hasTagPermission(Player player, String tagId) {
@@ -119,6 +123,7 @@ public class TagManager {
     }
 
     public void applyTagPermissions(Player player) {
+        // Remove old attachments
         if (attachments.containsKey(player.getUniqueId())) {
             try {
                 attachments.get(player.getUniqueId()).remove();
@@ -157,6 +162,66 @@ public class TagManager {
         }
     }
 
+    public void applyTagEffects(Player player) {
+        String tagId = getPlayerTag(player);
+        if (tagId == null) {
+            resetPlayerStats(player);
+            return;
+        }
+        
+        // Áp dụng tăng máu
+        double healthMultiplier = Schooltag.getInstance().getConfigManager()
+            .getTagHealthMultiplier(tagId);
+        
+        if (healthMultiplier > 1.0) {
+            applyHealthBoost(player, healthMultiplier);
+        } else {
+            resetHealth(player);
+        }
+    }
+
+    private void applyHealthBoost(Player player, double multiplier) {
+        try {
+            AttributeInstance attribute = player.getAttribute(Attribute.MAX_HEALTH);
+            if (attribute != null) {
+                double baseHealth = 20.0;
+                double newMaxHealth = baseHealth * multiplier;
+                
+                // Lưu tỷ lệ máu hiện tại
+                double currentHealth = player.getHealth();
+                double currentMax = attribute.getValue();
+                double healthRatio = currentHealth / currentMax;
+                
+                // Cập nhật máu tối đa mới
+                attribute.setBaseValue(newMaxHealth);
+                
+                // Cập nhật máu hiện tại theo tỷ lệ
+                double newHealth = newMaxHealth * healthRatio;
+                player.setHealth(Math.min(newHealth, newMaxHealth));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void resetHealth(Player player) {
+        try {
+            AttributeInstance attribute = player.getAttribute(Attribute.MAX_HEALTH);
+            if (attribute != null) {
+                attribute.setBaseValue(20.0);
+                if (player.getHealth() > 20.0) {
+                    player.setHealth(20.0);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void resetPlayerStats(Player player) {
+        resetHealth(player);
+    }
+
     public void openTagMenu(Player player) {
         openTagMenu(player, 0);
     }
@@ -167,6 +232,7 @@ public class TagManager {
             Inventory inv = Bukkit.createInventory(null, 54, 
                 ColorUtils.colorize(Schooltag.getInstance().getConfigManager().getGuiTitle()));
             
+            // Fill background
             ItemStack filler = new ItemStack(Material.valueOf(
                 Schooltag.getInstance().getConfigManager().getFillerMaterial()));
             ItemMeta fillerMeta = filler.getItemMeta();
@@ -178,6 +244,7 @@ public class TagManager {
                 inv.setItem(i, filler);
             }
 
+            // Get all tags and sort by slot
             List<String> allTags = new ArrayList<>(Schooltag.getInstance().getConfigManager().getAllTags());
             Map<Integer, String> slotMap = new HashMap<>();
             
@@ -188,6 +255,7 @@ public class TagManager {
                 }
             }
             
+            // Add tags to their specific slots
             for (Map.Entry<Integer, String> entry : slotMap.entrySet()) {
                 int slot = entry.getKey();
                 String tagId = entry.getValue();
@@ -199,6 +267,7 @@ public class TagManager {
                 inv.setItem(slot, item);
             }
 
+            // Add control buttons
             ItemStack prev = new ItemStack(Material.valueOf(
                 Schooltag.getInstance().getConfigManager().getPrevMaterial()));
             ItemMeta prevMeta = prev.getItemMeta();
@@ -242,6 +311,18 @@ public class TagManager {
             List<String> lore = new ArrayList<>();
             lore.addAll(Schooltag.getInstance().getConfigManager().getTagLore(tagId));
             
+            // Thêm thông tin hiệu ứng
+            double damageMult = Schooltag.getInstance().getConfigManager().getTagDamageMultiplier(tagId);
+            double healthMult = Schooltag.getInstance().getConfigManager().getTagHealthMultiplier(tagId);
+            
+            if (damageMult > 1.0) {
+                lore.add(ColorUtils.colorize("&c⚔️ Tăng " + (int)((damageMult - 1) * 100) + "% sát thương"));
+            }
+            if (healthMult > 1.0) {
+                lore.add(ColorUtils.colorize("&a❤️ Tăng " + (int)((healthMult - 1) * 100) + "% máu"));
+            }
+            
+            // Thêm thông tin permission được cấp
             List<String> grantPerms = Schooltag.getInstance().getConfigManager().getTagGrantPermissions(tagId);
             String grantPermsStr = grantPerms.isEmpty() ? "Không có" : String.join(", ", grantPerms);
             
@@ -280,6 +361,7 @@ public class TagManager {
 
     public void selectTag(Player player, String tagId) {
         try {
+            // Check if player has permission for this tag
             if (!hasTagPermission(player, tagId)) {
                 player.sendMessage(ColorUtils.colorize(
                     Schooltag.getInstance().getConfigManager().getMessage("tag-locked")));
@@ -292,14 +374,44 @@ public class TagManager {
                 return;
             }
             
-            removeTagPermissions(player);
+            // Remove old tag permissions và effects
+            String oldTag = getPlayerTag(player);
+            if (oldTag != null) {
+                removeTagPermissions(player);
+                resetPlayerStats(player);
+            }
+            
+            // Set new tag
             playerTags.put(player.getUniqueId(), tagId);
+            
+            // Apply new tag permissions và effects
             applyTagPermissions(player);
+            applyTagEffects(player);
+            
+            // Save
             savePlayerTag(player);
             
+            // Send message
             String msg = Schooltag.getInstance().getConfigManager().getMessage("tag-selected")
                 .replace("{tag}", Schooltag.getInstance().getConfigManager().getTagName(tagId));
             player.sendMessage(ColorUtils.colorize(msg));
+            
+            // Show effects info
+            double damageMult = Schooltag.getInstance().getConfigManager().getTagDamageMultiplier(tagId);
+            double healthMult = Schooltag.getInstance().getConfigManager().getTagHealthMultiplier(tagId);
+            
+            List<String> effects = new ArrayList<>();
+            if (damageMult > 1.0) {
+                effects.add(ColorUtils.colorize("&c⚔️ +" + (int)((damageMult - 1) * 100) + "% sát thương"));
+            }
+            if (healthMult > 1.0) {
+                effects.add(ColorUtils.colorize("&a❤️ +" + (int)((healthMult - 1) * 100) + "% máu"));
+            }
+            
+            if (!effects.isEmpty()) {
+                player.sendMessage(ColorUtils.colorize("&7Hiệu ứng: " + String.join(", ", effects)));
+            }
+            
         } catch (Exception e) {
             e.printStackTrace();
             player.sendMessage(ColorUtils.colorize("&cCó lỗi xảy ra khi chọn danh hiệu!"));
@@ -309,18 +421,27 @@ public class TagManager {
     public void removeTag(Player player) {
         try {
             UUID uuid = player.getUniqueId();
+            
+            // Remove permissions và effects
             removeTagPermissions(player);
+            resetPlayerStats(player);
+            
+            // Remove tag
             playerTags.remove(uuid);
             savePlayerTag(player);
             
+            // Auto select default if has permission
             if (hasTagPermission(player, "default")) {
                 playerTags.put(uuid, "default");
                 applyTagPermissions(player);
+                applyTagEffects(player);
                 savePlayerTag(player);
             }
             
+            // Send message
             player.sendMessage(ColorUtils.colorize(
                 Schooltag.getInstance().getConfigManager().getMessage("tag-removed")));
+            
         } catch (Exception e) {
             e.printStackTrace();
             player.sendMessage(ColorUtils.colorize("&cCó lỗi xảy ra khi gỡ danh hiệu!"));
@@ -331,12 +452,13 @@ public class TagManager {
         return playerTags.get(player.getUniqueId());
     }
 
-    public void applyTagEffects(Player player) {
-        // Effects handled in PlayerListener
+    public boolean isTagUnlocked(Player player, String tagId) {
+        return hasTagPermission(player, tagId);
     }
 
     public void handleMenuClick(Player player, int slot) {
         try {
+            // Check if clicked slot has a tag
             String clickedTag = null;
             for (String tagId : Schooltag.getInstance().getConfigManager().getAllTags()) {
                 int tagSlot = Schooltag.getInstance().getConfigManager().getTagSlot(tagId);
@@ -358,6 +480,14 @@ public class TagManager {
             }
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    // Reset player stats khi plugin disable
+    public void resetAllPlayers() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            resetHealth(player);
+            removeTagPermissions(player);
         }
     }
 }

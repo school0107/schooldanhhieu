@@ -9,6 +9,7 @@ import com.schooltag.managers.PlaceholderManager;
 import com.schooltag.utils.ConfigManager;
 import com.schooltag.placeholder.PlaceholderAPIHook;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class Schooltag extends JavaPlugin {
@@ -16,6 +17,7 @@ public class Schooltag extends JavaPlugin {
     private TagManager tagManager;
     private ConfigManager configManager;
     private PlaceholderManager placeholderManager;
+    private PlayerListener playerListener;
 
     @Override
     public void onEnable() {
@@ -28,14 +30,22 @@ public class Schooltag extends JavaPlugin {
             configManager = new ConfigManager();
             tagManager = new TagManager();
             placeholderManager = new PlaceholderManager();
+            playerListener = new PlayerListener();
             
             getCommand("tags").setExecutor(new TagCommand());
             getCommand("danhhieu").setExecutor(new DanhHieuCommand());
             
-            getServer().getPluginManager().registerEvents(new PlayerListener(), this);
+            getServer().getPluginManager().registerEvents(playerListener, this);
             getServer().getPluginManager().registerEvents(new MenuListener(), this);
             
             tagManager.loadPlayerTags();
+            
+            // Áp dụng hiệu ứng cho tất cả người chơi đang online
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                tagManager.loadPlayerTag(player);
+                tagManager.applyTagEffects(player);
+                playerListener.applyHealthBoost(player);
+            }
             
             // Register PlaceholderAPI
             if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
@@ -71,6 +81,11 @@ public class Schooltag extends JavaPlugin {
     @Override
     public void onDisable() {
         try {
+            // Reset health for all players before disabling
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                playerListener.resetHealth(player);
+            }
+            
             if (tagManager != null) {
                 tagManager.savePlayerTags();
             }
@@ -96,11 +111,23 @@ public class Schooltag extends JavaPlugin {
         return placeholderManager;
     }
 
+    public PlayerListener getPlayerListener() {
+        return playerListener;
+    }
+
     public void reload() {
         try {
             reloadConfig();
             configManager = new ConfigManager();
             tagManager.loadPlayerTags();
+            
+            // Reapply effects for all online players
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                tagManager.loadPlayerTag(player);
+                tagManager.applyTagEffects(player);
+                playerListener.applyHealthBoost(player);
+            }
+            
             getLogger().info("Schooltag đã được reload!");
         } catch (Exception e) {
             e.printStackTrace();
