@@ -17,37 +17,53 @@ public class Schooltag extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        instance = this;
-        
-        // Load config
-        saveDefaultConfig();
-        reloadConfig();
-        
-        // Initialize managers
-        configManager = new ConfigManager();
-        tagManager = new TagManager();
-        placeholderManager = new PlaceholderManager();
-        
-        // Register commands
-        getCommand("tags").setExecutor(new TagCommand());
-        getCommand("danhhieu").setExecutor(new DanhHieuCommand());
-        
-        // Register listeners
-        getServer().getPluginManager().registerEvents(new PlayerListener(), this);
-        getServer().getPluginManager().registerEvents(new MenuListener(), this);
-        
-        // Load data
-        tagManager.loadPlayerTags();
-        
-        getLogger().info("Schooltag đã được kích hoạt!");
+        try {
+            instance = this;
+            
+            // Load config
+            saveDefaultConfig();
+            reloadConfig();
+            
+            // Initialize managers
+            configManager = new ConfigManager();
+            tagManager = new TagManager();
+            placeholderManager = new PlaceholderManager();
+            
+            // Register commands
+            getCommand("tags").setExecutor(new TagCommand());
+            getCommand("danhhieu").setExecutor(new DanhHieuCommand());
+            
+            // Register listeners
+            getServer().getPluginManager().registerEvents(new PlayerListener(), this);
+            getServer().getPluginManager().registerEvents(new MenuListener(), this);
+            
+            // Load data
+            tagManager.loadPlayerTags();
+            
+            getLogger().info("=========================================");
+            getLogger().info("  Schooltag v1.0.0 đã được kích hoạt!");
+            getLogger().info("  /tags hoặc /danhhieu để mở menu");
+            getLogger().info("=========================================");
+        } catch (Exception e) {
+            getLogger().severe("=========================================");
+            getLogger().severe("  LỖI KHI KÍCH HOẠT SCHOOLTAG!");
+            getLogger().severe("  Vui lòng kiểm tra config và thử lại");
+            getLogger().severe("=========================================");
+            e.printStackTrace();
+            getServer().getPluginManager().disablePlugin(this);
+        }
     }
 
     @Override
     public void onDisable() {
-        if (tagManager != null) {
-            tagManager.savePlayerTags();
+        try {
+            if (tagManager != null) {
+                tagManager.savePlayerTags();
+            }
+            getLogger().info("Schooltag đã được tắt!");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        getLogger().info("Schooltag đã được tắt!");
     }
 
     public static Schooltag getInstance() {
@@ -67,8 +83,14 @@ public class Schooltag extends JavaPlugin {
     }
 
     public void reload() {
-        reloadConfig();
-        configManager = new ConfigManager();
-        tagManager.loadPlayerTags();
+        try {
+            reloadConfig();
+            configManager = new ConfigManager();
+            tagManager.loadPlayerTags();
+            getLogger().info("Schooltag đã được reload!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            getLogger().severe("Lỗi khi reload Schooltag!");
+        }
     }
-}
+}ga
