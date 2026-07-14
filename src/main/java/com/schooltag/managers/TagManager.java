@@ -15,28 +15,53 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.permissions.PermissionAttachment;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class TagManager {
     private final Map<UUID, String> playerTags = new HashMap<>();
     private final Map<UUID, PermissionAttachment> attachments = new HashMap<>();
-    private final Map<UUID, Long> cooldowns = new ConcurrentHashMap<>(); // Chống spam
+    private final Map<UUID, Long> cooldowns = new ConcurrentHashMap<>();
     private File playerDataFile;
     private FileConfiguration playerData;
     private int currentPage = 0;
     private final int ITEMS_PER_PAGE = 45;
-    
-    // Thời gian chờ mặc định (giây)
     private final int DEFAULT_COOLDOWN = 3;
 
     public TagManager() {
         try {
-            playerDataFile = new File(Schooltag.getInstance().getDataFolder(), "playerdata.yml");
-            if (!playerDataFile.exists()) {
-                Schooltag.getInstance().saveResource("playerdata.yml", false);
+            // Tạo thư mục plugin nếu chưa tồn tại
+            File dataFolder = Schooltag.getInstance().getDataFolder();
+            if (!dataFolder.exists()) {
+                dataFolder.mkdirs();
             }
+            
+            playerDataFile = new File(dataFolder, "playerdata.yml");
+            
+            // Nếu file chưa tồn tại, tạo mới
+            if (!playerDataFile.exists()) {
+                try {
+                    playerDataFile.createNewFile();
+                    Schooltag.getInstance().getLogger().info("Đã tạo file playerdata.yml mới!");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    Schooltag.getInstance().getLogger().severe("Không thể tạo file playerdata.yml!");
+                }
+            }
+            
             playerData = YamlConfiguration.loadConfiguration(playerDataFile);
+            
+            // Tạo cấu trúc mặc định nếu file rỗng
+            if (playerData.getKeys(false).isEmpty()) {
+                playerData.set("_version", "1.0");
+                try {
+                    playerData.save(playerDataFile);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            
         } catch (Exception e) {
             e.printStackTrace();
             Schooltag.getInstance().getLogger().severe("Không thể tải file playerdata.yml!");
@@ -48,10 +73,16 @@ public class TagManager {
         
         try {
             for (String uuidStr : playerData.getKeys(false)) {
-                UUID uuid = UUID.fromString(uuidStr);
-                String tag = playerData.getString(uuidStr + ".current");
-                if (tag != null && !tag.isEmpty()) {
-                    playerTags.put(uuid, tag);
+                if (uuidStr.equals("_version")) continue; // Bỏ qua key version
+                
+                try {
+                    UUID uuid = UUID.fromString(uuidStr);
+                    String tag = playerData.getString(uuidStr + ".current");
+                    if (tag != null && !tag.isEmpty()) {
+                        playerTags.put(uuid, tag);
+                    }
+                } catch (IllegalArgumentException e) {
+                    // Bỏ qua nếu UUID không hợp lệ
                 }
             }
         } catch (Exception e) {
@@ -192,15 +223,12 @@ public class TagManager {
                 double baseHealth = 20.0;
                 double newMaxHealth = baseHealth * multiplier;
                 
-                // Lưu tỷ lệ máu hiện tại
                 double currentHealth = player.getHealth();
                 double currentMax = attribute.getValue();
                 double healthRatio = currentHealth / currentMax;
                 
-                // Cập nhật máu tối đa mới
                 attribute.setBaseValue(newMaxHealth);
                 
-                // Cập nhật máu hiện tại theo tỷ lệ
                 double newHealth = newMaxHealth * healthRatio;
                 player.setHealth(Math.min(newHealth, newMaxHealth));
             }
@@ -227,21 +255,22 @@ public class TagManager {
         resetHealth(player);
     }
 
-    /**
-     * Kiểm tra cooldown của người chơi
-     * @param player Người chơi cần kiểm tra
-     * @param cooldownSeconds Thời gian chờ (giây)
-     * @return true nếu đang trong thời gian chờ, false nếu có thể đổi tag
-     */
-    private boolean isOnCooldown(Player player, int cooldownSeconds) {
+    private int getCooldownTime() {
+        return Schooltag.getInstance().getConfigManager().getCooldown();
+    }
+
+    private boolean isOnCooldown(Player player) {
+        int cooldownTime = getCooldownTime();
+        if (cooldownTime <= 0) return false; // Tắt cooldown
+        
         UUID uuid = player.getUniqueId();
         long currentTime = System.currentTimeMillis();
         
         if (cooldowns.containsKey(uuid)) {
             long lastChange = cooldowns.get(uuid);
-            long timePassed = (currentTime - lastChange) / 1000; // Chuyển sang giây
+            long timePassed = (currentTime - lastChange) / 1000;
             
-            if (timePassed < cooldownSeconds) {
+            if (timePassed < cooldownTime) {
                 return true;
             }
         }
@@ -249,17 +278,14 @@ public class TagManager {
         return false;
     }
 
-    /**
-     * Cập nhật cooldown cho người chơi
-     */
     private void updateCooldown(Player player) {
         cooldowns.put(player.getUniqueId(), System.currentTimeMillis());
     }
 
-    /**
-     * Lấy thời gian cooldown còn lại (giây)
-     */
     public long getRemainingCooldown(Player player) {
+        int cooldownTime = getCooldownTime();
+        if (cooldownTime <= 0) return 0;
+        
         UUID uuid = player.getUniqueId();
         if (!cooldowns.containsKey(uuid)) return 0;
         
@@ -267,7 +293,7 @@ public class TagManager {
         long currentTime = System.currentTimeMillis();
         long timePassed = (currentTime - lastChange) / 1000;
         
-        return Math.max(0, DEFAULT_COOLDOWN - timePassed);
+        return Math.max(0, cooldownTime - timePassed);
     }
 
     public void openTagMenu(Player player) {
@@ -280,7 +306,6 @@ public class TagManager {
             Inventory inv = Bukkit.createInventory(null, 54, 
                 ColorUtils.colorize(Schooltag.getInstance().getConfigManager().getGuiTitle()));
             
-            // Fill background
             ItemStack filler = new ItemStack(Material.valueOf(
                 Schooltag.getInstance().getConfigManager().getFillerMaterial()));
             ItemMeta fillerMeta = filler.getItemMeta();
@@ -292,7 +317,6 @@ public class TagManager {
                 inv.setItem(i, filler);
             }
 
-            // Get all tags and sort by slot
             List<String> allTags = new ArrayList<>(Schooltag.getInstance().getConfigManager().getAllTags());
             Map<Integer, String> slotMap = new HashMap<>();
             
@@ -303,7 +327,6 @@ public class TagManager {
                 }
             }
             
-            // Add tags to their specific slots
             for (Map.Entry<Integer, String> entry : slotMap.entrySet()) {
                 int slot = entry.getKey();
                 String tagId = entry.getValue();
@@ -315,7 +338,6 @@ public class TagManager {
                 inv.setItem(slot, item);
             }
 
-            // Add control buttons
             ItemStack prev = new ItemStack(Material.valueOf(
                 Schooltag.getInstance().getConfigManager().getPrevMaterial()));
             ItemMeta prevMeta = prev.getItemMeta();
@@ -340,15 +362,12 @@ public class TagManager {
             close.setItemMeta(closeMeta);
             inv.setItem(49, close);
 
-            // Hiển thị thông tin cooldown
-            if (isOnCooldown(player, DEFAULT_COOLDOWN)) {
+            // Hiển thị cooldown
+            if (isOnCooldown(player)) {
                 long remaining = getRemainingCooldown(player);
                 ItemStack cooldownItem = new ItemStack(Material.CLOCK);
                 ItemMeta cooldownMeta = cooldownItem.getItemMeta();
-                cooldownMeta.setDisplayName(ColorUtils.colorize("&c&l⏳ Đang chờ..."));
-                cooldownMeta.setLore(ColorUtils.colorizeList(Arrays.asList(
-                    "&7Vui lòng đợi &e" + remaining + "&7 giây để đổi danh hiệu tiếp theo"
-                )));
+                cooldownMeta.setDisplayName(ColorUtils.colorize("&c&l⏳ Đợi " + remaining + "s"));
                 cooldownItem.setItemMeta(cooldownMeta);
                 inv.setItem(4, cooldownItem);
             }
@@ -372,20 +391,18 @@ public class TagManager {
             List<String> lore = new ArrayList<>();
             lore.addAll(Schooltag.getInstance().getConfigManager().getTagLore(tagId));
             
-            // Thêm thông tin hiệu ứng
             double damageMult = Schooltag.getInstance().getConfigManager().getTagDamageMultiplier(tagId);
             double healthMult = Schooltag.getInstance().getConfigManager().getTagHealthMultiplier(tagId);
             
             if (damageMult > 1.0) {
-                lore.add(ColorUtils.colorize("&c⚔️ Tăng " + (int)((damageMult - 1) * 100) + "% sát thương"));
+                lore.add(ColorUtils.colorize("&c⚔️ +" + (int)((damageMult - 1) * 100) + "% sát thương"));
             }
             if (healthMult > 1.0) {
-                lore.add(ColorUtils.colorize("&a❤️ Tăng " + (int)((healthMult - 1) * 100) + "% máu"));
+                lore.add(ColorUtils.colorize("&a❤️ +" + (int)((healthMult - 1) * 100) + "% máu"));
             }
             
-            // Thêm thông tin permission được cấp
             List<String> grantPerms = Schooltag.getInstance().getConfigManager().getTagGrantPermissions(tagId);
-            String grantPermsStr = grantPerms.isEmpty() ? "Không có" : String.join(", ", grantPerms);
+            String grantPermsStr = grantPerms.isEmpty() ? "Không" : String.join(", ", grantPerms);
             
             if (selected) {
                 lore.add("");
@@ -411,10 +428,9 @@ public class TagManager {
                 }
             }
             
-            // Thêm thông báo cooldown nếu đang chờ
-            if (isOnCooldown(player, DEFAULT_COOLDOWN) && hasPerm && !selected) {
+            if (isOnCooldown(player) && hasPerm && !selected) {
                 lore.add("");
-                lore.add(ColorUtils.colorize("&c&l⏳ Đang chờ &e" + getRemainingCooldown(player) + "&c&l giây..."));
+                lore.add(ColorUtils.colorize("&c⏳ Chờ " + getRemainingCooldown(player) + "s"));
             }
             
             meta.setLore(ColorUtils.colorizeList(lore));
@@ -428,28 +444,24 @@ public class TagManager {
 
     public void selectTag(Player player, String tagId) {
         try {
-            // Kiểm tra cooldown
-            if (isOnCooldown(player, DEFAULT_COOLDOWN)) {
+            if (isOnCooldown(player)) {
                 long remaining = getRemainingCooldown(player);
-                String msg = "&cBạn phải đợi &e" + remaining + "&c giây để đổi danh hiệu tiếp theo!";
+                String msg = Schooltag.getInstance().getConfigManager().getMessage("cooldown")
+                    .replace("{seconds}", String.valueOf(remaining));
                 player.sendMessage(ColorUtils.colorize(msg));
-                
-                // Cập nhật menu để hiển thị cooldown
                 openTagMenu(player, currentPage);
                 return;
             }
             
-            // Check if player has permission for this tag
             if (!hasTagPermission(player, tagId)) {
                 player.sendMessage(ColorUtils.colorize(
                     Schooltag.getInstance().getConfigManager().getMessage("tag-locked")));
                 return;
             }
             
-            // Kiểm tra nếu đang dùng tag này rồi
             String currentTag = getPlayerTag(player);
             if (currentTag != null && currentTag.equals(tagId)) {
-                player.sendMessage(ColorUtils.colorize("&eBạn đang sử dụng danh hiệu này!"));
+                player.sendMessage(ColorUtils.colorize("&eBạn đang dùng danh hiệu này!"));
                 return;
             }
             
@@ -459,79 +471,59 @@ public class TagManager {
                 return;
             }
             
-            // Remove old tag permissions và effects
             if (currentTag != null) {
                 removeTagPermissions(player);
                 resetPlayerStats(player);
             }
             
-            // Set new tag
             playerTags.put(player.getUniqueId(), tagId);
-            
-            // Apply new tag permissions và effects
             applyTagPermissions(player);
             applyTagEffects(player);
-            
-            // Update cooldown
             updateCooldown(player);
-            
-            // Save
             savePlayerTag(player);
             
-            // Send message
             String msg = Schooltag.getInstance().getConfigManager().getMessage("tag-selected")
                 .replace("{tag}", Schooltag.getInstance().getConfigManager().getTagName(tagId));
             player.sendMessage(ColorUtils.colorize(msg));
             
-            // Show effects info
             double damageMult = Schooltag.getInstance().getConfigManager().getTagDamageMultiplier(tagId);
             double healthMult = Schooltag.getInstance().getConfigManager().getTagHealthMultiplier(tagId);
             
             List<String> effects = new ArrayList<>();
             if (damageMult > 1.0) {
-                effects.add(ColorUtils.colorize("&c⚔️ +" + (int)((damageMult - 1) * 100) + "% sát thương"));
+                effects.add(ColorUtils.colorize("&c⚔️ +" + (int)((damageMult - 1) * 100) + "%"));
             }
             if (healthMult > 1.0) {
-                effects.add(ColorUtils.colorize("&a❤️ +" + (int)((healthMult - 1) * 100) + "% máu"));
+                effects.add(ColorUtils.colorize("&a❤️ +" + (int)((healthMult - 1) * 100) + "%"));
             }
             
             if (!effects.isEmpty()) {
                 player.sendMessage(ColorUtils.colorize("&7Hiệu ứng: " + String.join(", ", effects)));
             }
             
-            // Thông báo cooldown
-            player.sendMessage(ColorUtils.colorize("&7Bạn có thể đổi danh hiệu sau &e" + DEFAULT_COOLDOWN + "&7 giây"));
-            
         } catch (Exception e) {
             e.printStackTrace();
-            player.sendMessage(ColorUtils.colorize("&cCó lỗi xảy ra khi chọn danh hiệu!"));
+            player.sendMessage(ColorUtils.colorize("&cCó lỗi xảy ra!"));
         }
     }
 
     public void removeTag(Player player) {
         try {
-            // Kiểm tra cooldown
-            if (isOnCooldown(player, DEFAULT_COOLDOWN)) {
+            if (isOnCooldown(player)) {
                 long remaining = getRemainingCooldown(player);
-                String msg = "&cBạn phải đợi &e" + remaining + "&c giây để gỡ danh hiệu!";
+                String msg = Schooltag.getInstance().getConfigManager().getMessage("cooldown")
+                    .replace("{seconds}", String.valueOf(remaining));
                 player.sendMessage(ColorUtils.colorize(msg));
                 return;
             }
             
             UUID uuid = player.getUniqueId();
-            
-            // Remove permissions và effects
             removeTagPermissions(player);
             resetPlayerStats(player);
-            
-            // Remove tag
             playerTags.remove(uuid);
             savePlayerTag(player);
-            
-            // Update cooldown
             updateCooldown(player);
             
-            // Auto select default if has permission
             if (hasTagPermission(player, "default")) {
                 playerTags.put(uuid, "default");
                 applyTagPermissions(player);
@@ -539,13 +531,12 @@ public class TagManager {
                 savePlayerTag(player);
             }
             
-            // Send message
             player.sendMessage(ColorUtils.colorize(
                 Schooltag.getInstance().getConfigManager().getMessage("tag-removed")));
             
         } catch (Exception e) {
             e.printStackTrace();
-            player.sendMessage(ColorUtils.colorize("&cCó lỗi xảy ra khi gỡ danh hiệu!"));
+            player.sendMessage(ColorUtils.colorize("&cCó lỗi xảy ra!"));
         }
     }
 
@@ -559,7 +550,6 @@ public class TagManager {
 
     public void handleMenuClick(Player player, int slot) {
         try {
-            // Check if clicked slot has a tag
             String clickedTag = null;
             for (String tagId : Schooltag.getInstance().getConfigManager().getAllTags()) {
                 int tagSlot = Schooltag.getInstance().getConfigManager().getTagSlot(tagId);
@@ -571,15 +561,13 @@ public class TagManager {
             
             if (clickedTag != null) {
                 selectTag(player, clickedTag);
-                // Không mở lại menu ngay lập tức để tránh spam
-                // Mở lại sau 1 tick để cooldown được cập nhật
                 Bukkit.getScheduler().runTaskLater(Schooltag.getInstance(), () -> {
                     openTagMenu(player, currentPage);
                 }, 1L);
             } else if (slot == 48) {
-                // Previous page - not used in slot mode
+                // Previous
             } else if (slot == 50) {
-                // Next page - not used in slot mode
+                // Next
             } else if (slot == 49) {
                 player.closeInventory();
             }
@@ -588,7 +576,6 @@ public class TagManager {
         }
     }
 
-    // Reset player stats khi plugin disable
     public void resetAllPlayers() {
         for (Player player : Bukkit.getOnlinePlayers()) {
             resetHealth(player);
@@ -596,12 +583,10 @@ public class TagManager {
         }
     }
 
-    // Reset cooldown cho player (dùng khi reload)
     public void resetCooldown(Player player) {
         cooldowns.remove(player.getUniqueId());
     }
 
-    // Reset tất cả cooldown
     public void resetAllCooldowns() {
         cooldowns.clear();
     }
