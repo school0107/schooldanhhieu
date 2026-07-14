@@ -130,4 +130,4 @@ public class ConfigManager {
     public String getMessage(String key) {
         return config.getString("messages." + key, "&cKhông tìm thấy message: " + key);
     }
-}
+}g
