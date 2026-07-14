@@ -3,6 +3,9 @@ package com.schooltag.managers;
 import com.schooltag.Schooltag;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class PlaceholderManager {
     
     public String parsePlaceholders(Player player, String text) {
