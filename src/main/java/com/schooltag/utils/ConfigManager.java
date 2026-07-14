@@ -39,6 +39,10 @@ public class ConfigManager {
         return config.getString("tags." + tagId + ".material", "NAME_TAG");
     }
     
+    public int getTagSlot(String tagId) {
+        return config.getInt("tags." + tagId + ".slot", -1);
+    }
+    
     public List<String> getTagLore(String tagId) {
         return config.getStringList("tags." + tagId + ".lore");
     }
